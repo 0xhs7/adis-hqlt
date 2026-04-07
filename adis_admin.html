@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ADIS – Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --purple:       #7C3AED;
+    --purple-dark:  #4C1D95;
+    --purple-light: #A78BFA;
+    --blue:         #2563EB;
+    --blue-light:   #60A5FA;
+    --pink:         #EC4899;
+    --pink-light:   #F9A8D4;
+    --green:        #10B981;
+    --green-light:  #6EE7B7;
+    --red:          #EF4444;
+    --red-light:    #FCA5A5;
+    --amber:        #F59E0B;
+    --amber-light:  #FCD34D;
+
+    --bg:       #0C0420;
+    --surface:  #130832;
+    --surface2: #1A0C40;
+    --border:       rgba(167,139,250,0.15);
+    --border-h:     rgba(167,139,250,0.35);
+    --text:         #F5F3FF;
+    --text-muted:   rgba(245,243,255,0.50);
+    --glass:        rgba(255,255,255,0.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ══ LOGIN ══ */
+  #loginScreen {
+    position:fixed; inset:0; z-index:999;
+    background:linear-gradient(135deg,#0c0420 0%,#130832 50%,#1a0845 100%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .login-card {
+    width:100%; max-width:400px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:24px; padding:48px 40px;
+    box-shadow:0 32px 80px rgba(0,0,0,0.6); text-align:center;
+  }
+  .login-icon { font-size:42px; margin-bottom:12px; }
+  .login-title {
+    font-family:'Playfair Display',serif; font-size:24px; font-weight:900; margin-bottom:6px;
+    background:linear-gradient(120deg,#fff 30%,var(--purple-light) 80%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  }
+  .login-sub { font-size:13px; color:var(--text-muted); margin-bottom:30px; }
+  .lf { margin-bottom:15px; text-align:left; }
+  .lf label { display:block; font-size:10.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--purple-light); margin-bottom:7px; }
+  .lf input {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px;
+    font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text); outline:none;
+    transition:border-color 0.2s, box-shadow 0.2s;
+  }
+  .lf input:focus { border-color:var(--purple-light); box-shadow:0 0 0 3px rgba(167,139,250,0.14); }
+  .login-err { font-size:12px; color:var(--red-light); margin-top:10px; min-height:18px; }
+
+  /* ══ SETUP BANNER ══ */
+  #setupBanner {
+    display:none;
+    background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.30);
+    border-radius:12px; padding:14px 20px; margin-bottom:24px;
+    font-size:13px; color:var(--amber-light); line-height:1.6;
+  }
+  #setupBanner strong { color:var(--amber); }
+
+  /* ══ HEADER ══ */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:13px 28px;
+    background:var(--surface); border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:100;
+  }
+  .h-brand { display:flex; align-items:center; gap:10px; }
+  .h-badge {
+    background:linear-gradient(135deg,var(--purple),var(--pink));
+    border-radius:8px; padding:5px 10px;
+    font-size:11px; font-weight:800; letter-spacing:2px; color:#fff;
+  }
+  .h-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; }
+  .h-right { display:flex; align-items:center; gap:12px; }
+  .h-user  { font-size:12px; color:var(--text-muted); }
+  .h-script-status { font-size:11px; padding:4px 10px; border-radius:6px; }
+  .h-script-status.ok  { background:rgba(16,185,129,0.15); color:var(--green-light); }
+  .h-script-status.err { background:rgba(239,68,68,0.12);  color:var(--red-light);   }
+  .h-script-status.pending { background:rgba(245,158,11,0.12); color:var(--amber-light); }
+  .btn-logout {
+    padding:6px 14px; border-radius:8px; border:1px solid var(--border);
+    background:transparent; color:var(--red-light); font-size:12px;
+    font-family:'DM Sans',sans-serif; font-weight:600; cursor:pointer;
+    transition:background 0.2s;
+  }
+  .btn-logout:hover { background:rgba(239,68,68,0.12); }
+
+  /* ══ LAYOUT ══ */
+  .layout { display:flex; flex:1; }
+
+  nav {
+    width:215px; flex-shrink:0;
+    background:var(--surface); border-right:1px solid var(--border);
+    padding:20px 0; display:flex; flex-direction:column; gap:2px;
+    position:sticky; top:53px; height:calc(100vh - 53px); overflow-y:auto;
+  }
+  .nav-section { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); padding:12px 18px 5px; }
+  .nav-item {
+    display:flex; align-items:center; gap:9px;
+    padding:10px 18px; cursor:pointer;
+    font-size:13px; font-weight:500; color:var(--text-muted);
+    border-left:3px solid transparent; transition:all 0.15s;
+  }
+  .nav-item:hover { color:var(--text); background:var(--glass); }
+  .nav-item.active { color:var(--purple-light); border-left-color:var(--purple-light); background:rgba(167,139,250,0.08); }
+  .nav-icon { font-size:15px; width:18px; text-align:center; }
+  .nav-count {
+    margin-left:auto; background:rgba(167,139,250,0.18);
+    border-radius:99px; padding:1px 8px; font-size:11px;
+    color:var(--purple-light); font-weight:700;
+  }
+
+  /* ══ CONTENT ══ */
+  .content { flex:1; padding:28px 32px; overflow-y:auto; }
+  .page { display:none; }
+  .page.active { display:block; }
+
+  .page-title { font-family:'Playfair Display',serif; font-size:22px; font-weight:900; margin-bottom:4px; }
+  .page-sub   { font-size:13px; color:var(--text-muted); margin-bottom:26px; }
+
+  /* ══ STAT CARDS ══ */
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; margin-bottom:28px; }
+  .stat-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:18px 20px; transition:border-color 0.2s;
+  }
+  .stat-card:hover { border-color:var(--border-h); }
+  .stat-label { font-size:10.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
+  .stat-value { font-size:34px; font-weight:800; line-height:1; }
+  .stat-sub   { font-size:11px; color:var(--text-muted); margin-top:3px; }
+  .c-purple { color:var(--purple-light); }
+  .c-blue   { color:var(--blue-light);   }
+  .c-pink   { color:var(--pink-light);   }
+  .c-green  { color:var(--green-light);  }
+  .c-white  { color:#fff; }
+
+  /* ══ CARDS ══ */
+  .card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:22px; margin-bottom:22px;
+  }
+  .card-title {
+    font-size:13.5px; font-weight:700; margin-bottom:16px;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  /* ══ BUTTONS ══ */
+  .btn {
+    display:inline-flex; align-items:center; gap:7px;
+    padding:9px 18px; border-radius:10px; border:none;
+    font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600;
+    cursor:pointer; transition:all 0.18s;
+  }
+  .btn-primary  { background:linear-gradient(135deg,var(--purple),var(--blue)); color:#fff; box-shadow:0 4px 14px rgba(124,58,237,0.3); }
+  .btn-primary:hover  { transform:translateY(-1px); box-shadow:0 6px 18px rgba(124,58,237,0.4); }
+  .btn-success  { background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.32); color:var(--green-light); }
+  .btn-success:hover  { background:rgba(16,185,129,0.24); }
+  .btn-danger   { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.28); color:var(--red-light); }
+  .btn-danger:hover   { background:rgba(239,68,68,0.22); }
+  .btn-outline  { background:transparent; border:1px solid var(--border); color:var(--text-muted); }
+  .btn-outline:hover  { border-color:var(--border-h); color:var(--text); }
+  .btn-amber    { background:rgba(245,158,11,0.14); border:1px solid rgba(245,158,11,0.30); color:var(--amber-light); }
+  .btn-amber:hover    { background:rgba(245,158,11,0.24); }
+  .btn:disabled { opacity:0.45; cursor:not-allowed; transform:none !important; }
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+
+  /* ══ TABLE ══ */
+  .table-wrap { overflow-x:auto; border-radius:12px; border:1px solid var(--border); }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  thead th {
+    background:var(--surface2); padding:11px 13px;
+    text-align:left; font-size:10px; font-weight:700;
+    letter-spacing:1.2px; text-transform:uppercase; color:var(--purple-light);
+    white-space:nowrap; border-bottom:1px solid var(--border);
+  }
+  tbody tr { border-top:1px solid var(--border); transition:background 0.12s; }
+  tbody tr:hover { background:var(--glass); }
+  tbody td { padding:10px 13px; color:var(--text); vertical-align:top; }
+  .td-clip { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+  .td-uid  { font-family:monospace; font-size:12px; color:var(--purple-light); }
+  .td-empty td { text-align:center; color:var(--text-muted); padding:36px; }
+  .rating-pill {
+    display:inline-block; width:28px; height:28px; line-height:28px;
+    border-radius:6px; text-align:center; font-size:13px; font-weight:700;
+  }
+  .r1,.r2 { background:rgba(239,68,68,0.18);  color:var(--red-light);   }
+  .r3     { background:rgba(245,158,11,0.18); color:var(--amber-light); }
+  .r4,.r5 { background:rgba(16,185,129,0.18); color:var(--green-light); }
+
+  /* loading spinner */
+  .spinner {
+    display:inline-block; width:18px; height:18px;
+    border:2px solid var(--border); border-top-color:var(--purple-light);
+    border-radius:50%; animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loading-row td { text-align:center; padding:30px; color:var(--text-muted); }
+
+  /* ══ FORM ELEMENTS ══ */
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:10.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--purple-light); margin-bottom:7px; }
+  .field input {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:11px 14px;
+    font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text); outline:none;
+    transition:border-color 0.2s, box-shadow 0.2s;
+  }
+  .field input:focus { border-color:var(--purple-light); box-shadow:0 0 0 3px rgba(167,139,250,0.12); }
+  .field-hint { font-size:11.5px; color:var(--text-muted); margin-top:6px; line-height:1.5; }
+
+  /* upload zone */
+  .upload-zone {
+    border:2px dashed var(--border); border-radius:12px;
+    padding:24px 18px; text-align:center; cursor:pointer;
+    transition:border-color 0.2s, background 0.2s;
+    background:var(--surface2);
+  }
+  .upload-zone:hover { border-color:var(--purple-light); background:rgba(167,139,250,0.05); }
+  .upload-zone input { display:none; }
+  .upload-zone p { font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+  .upload-zone strong { color:var(--purple-light); }
+  .uz-icon { font-size:26px; margin-bottom:7px; display:block; }
+
+  /* img preview */
+  .img-preview { margin-top:12px; border-radius:10px; overflow:hidden; border:1px solid var(--border); max-width:280px; display:none; }
+  .img-preview img { width:100%; display:block; max-height:150px; object-fit:contain; background:#000; }
+  .img-preview.show { display:block; }
+
+  /* two-col */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+
+  /* code block */
+  .code-block {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px; margin-top:10px;
+    font-family:monospace; font-size:12px; color:var(--purple-light);
+    white-space:pre-wrap; word-break:break-all; line-height:1.7;
+    position:relative;
+  }
+  .copy-btn {
+    position:absolute; top:10px; right:10px;
+    padding:4px 10px; border-radius:6px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-muted);
+    font-size:11px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:color 0.15s;
+  }
+  .copy-btn:hover { color:var(--text); }
+
+  /* preview bar */
+  .preview-bar {
+    display:flex; align-items:center; gap:14px;
+    padding:14px 18px; border-radius:12px;
+    background:var(--surface2); border:1px solid var(--border); margin-top:14px;
+  }
+  .prev-logo {
+    width:48px; height:48px; border-radius:8px; border:1px solid var(--border);
+    overflow:hidden; display:flex; align-items:center; justify-content:center;
+    font-size:9px; color:var(--text-muted); background:var(--surface); flex-shrink:0;
+  }
+  .prev-logo img { width:100%; height:100%; object-fit:contain; display:none; }
+  .prev-bg {
+    flex:1; height:48px; border-radius:8px; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; color:var(--text-muted); background:var(--surface) center/cover;
+  }
+
+  /* steps */
+  .steps { counter-reset:step; display:flex; flex-direction:column; gap:13px; }
+  .step  { display:flex; gap:13px; align-items:flex-start; }
+  .step::before {
+    counter-increment:step; content:counter(step);
+    min-width:27px; height:27px; border-radius:50%;
+    background:rgba(167,139,250,0.16); border:1px solid var(--purple-light);
+    color:var(--purple-light); font-size:11.5px; font-weight:800;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .step p { font-size:13px; color:var(--text-muted); line-height:1.65; padding-top:3px; }
+  .step p strong { color:var(--text); }
+  code {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:5px; padding:2px 6px;
+    font-size:11.5px; color:var(--purple-light); font-family:monospace;
+  }
+
+  /* grade tag */
+  .grade-tag {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11.5px; font-weight:600;
+  }
+  .g-dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
+
+  /* ══ TOAST ══ */
+  #toastWrap { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+  .toast {
+    padding:11px 16px; border-radius:10px;
+    font-size:13px; font-weight:500;
+    display:flex; align-items:center; gap:8px;
+    animation:slideUp 0.3s ease;
+  }
+  .toast.ok  { background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.35); color:var(--green-light); }
+  .toast.err { background:rgba(239,68,68,0.15);  border:1px solid rgba(239,68,68,0.30);  color:var(--red-light);   }
+  .toast.info{ background:rgba(96,165,250,0.15); border:1px solid rgba(96,165,250,0.30); color:var(--blue-light);  }
+  @keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:768px) {
+    nav { display:none; }
+    .two-col { grid-template-columns:1fr; }
+    .content { padding:18px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toastWrap"></div>
+
+<!-- ══ LOGIN ══ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-icon">🛡️</div>
+    <h2 class="login-title">Admin Panel</h2>
+    <p class="login-sub">ADIS · HQLT Framework</p>
+    <div class="lf">
+      <label>Username</label>
+      <input type="text" id="lu" placeholder="admin" autocomplete="off"/>
+    </div>
+    <div class="lf">
+      <label>Password</label>
+      <input type="password" id="lp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <p class="login-err" id="loginErr"></p>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="doLogin()">Sign In →</button>
+  </div>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="h-brand">
+    <span class="h-badge">ADIS</span>
+    <span class="h-title">Admin Panel</span>
+  </div>
+  <div class="h-right">
+    <span class="h-script-status pending" id="scriptStatus">⏳ Not connected</span>
+    <span class="h-user" id="hUser"></span>
+    <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ══ SIDEBAR ══ -->
+  <nav>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="nav('dashboard')" data-p="dashboard">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+
+    <div class="nav-section">Responses</div>
+    <div class="nav-item" onclick="nav('nursery')" data-p="nursery">
+      <span class="nav-icon">🌱</span> Nursery – Gr. 1
+      <span class="nav-count" id="cnt-nursery_grade1">—</span>
+    </div>
+    <div class="nav-item" onclick="nav('grade25')" data-p="grade25">
+      <span class="nav-icon">📖</span> Grade 2 – 5
+      <span class="nav-count" id="cnt-grade2_grade5">—</span>
+    </div>
+    <div class="nav-item" onclick="nav('grade69')" data-p="grade69">
+      <span class="nav-icon">🔬</span> Grade 6 – 9
+      <span class="nav-count" id="cnt-grade6_grade9">—</span>
+    </div>
+    <div class="nav-item" onclick="nav('grade10')" data-p="grade10">
+      <span class="nav-icon">🎓</span> Grade 10 – DP
+      <span class="nav-count" id="cnt-grade10_dp">—</span>
+    </div>
+
+    <div class="nav-section">Settings</div>
+    <div class="nav-item" onclick="nav('appearance')" data-p="appearance">
+      <span class="nav-icon">🎨</span> Appearance
+    </div>
+    <div class="nav-item" onclick="nav('connect')" data-p="connect">
+      <span class="nav-icon">🔗</span> Connect Sheets
+    </div>
+  </nav>
+
+  <!-- ══ CONTENT ══ -->
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <h2 class="page-title">Dashboard</h2>
+      <p class="page-sub">Live overview of all HQLT survey responses from Google Sheets.</p>
+
+      <div id="setupBanner">
+        ⚠ <strong>Google Sheets not connected yet.</strong> Go to <strong>Connect Sheets</strong> in the sidebar, paste your Apps Script URL and click Save. All data will then load here automatically.
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Responses</div>
+          <div class="stat-value c-white" id="statTotal">—</div>
+          <div class="stat-sub">All grades</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Nursery – Gr. 1</div>
+          <div class="stat-value c-purple" id="statN">—</div>
+          <div class="stat-sub">Image uploads</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Grade 2 – 5</div>
+          <div class="stat-value c-blue" id="statG25">—</div>
+          <div class="stat-sub">Text responses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Grade 6 – 9</div>
+          <div class="stat-value c-pink" id="statG69">—</div>
+          <div class="stat-sub">Ratings + text</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Grade 10 – DP</div>
+          <div class="stat-value c-green" id="statG10">—</div>
+          <div class="stat-sub">Reflective answers</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚡ Quick Actions</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-success" onclick="downloadCSV('all')">⬇ Download All (CSV)</button>
+          <button class="btn btn-outline"  onclick="loadStats()">🔄 Refresh Stats</button>
+          <button class="btn btn-outline"  onclick="nav('appearance')">🎨 Update Logo / BG</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 Recent Submissions <span style="font-weight:400;color:var(--text-muted);font-size:12px">(latest 20 across all grades)</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Grade Group</th><th>First Name</th><th>Last Name</th><th>Adani UID</th></tr></thead>
+            <tbody id="recentBody"><tr class="td-empty"><td colspan="5">Connect Google Sheets to see submissions.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- NURSERY -->
+    <div class="page" id="page-nursery">
+      <h2 class="page-title">🌱 Nursery to Grade 1</h2>
+      <p class="page-sub">Image-based submissions — students upload drawings/photos for 3 questions.</p>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="downloadCSV('nursery_grade1')">⬇ Download CSV</button>
+        <button class="btn btn-outline"  onclick="loadGradeTable('nursery_grade1')">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Timestamp</th><th>First Name</th><th>Last Name</th><th>Adani UID</th>
+            <th>Image 1</th><th>Image 2</th><th>Image 3</th>
+          </tr></thead>
+          <tbody id="tbody-nursery_grade1"><tr class="td-empty"><td colspan="7">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GRADE 2-5 -->
+    <div class="page" id="page-grade25">
+      <h2 class="page-title">📖 Grade 2 to Grade 5</h2>
+      <p class="page-sub">Text responses — learning looks/sounds/feels like, one change, good teacher.</p>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="downloadCSV('grade2_grade5')">⬇ Download CSV</button>
+        <button class="btn btn-outline"  onclick="loadGradeTable('grade2_grade5')">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Timestamp</th><th>First Name</th><th>Last Name</th><th>Adani UID</th>
+            <th>Q1a – Looks Like</th><th>Q1b – Sounds Like</th><th>Q1c – Feels Like</th>
+            <th>Q2 – One Change</th><th>Q3 – Good Teacher</th>
+          </tr></thead>
+          <tbody id="tbody-grade2_grade5"><tr class="td-empty"><td colspan="9">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GRADE 6-9 -->
+    <div class="page" id="page-grade69">
+      <h2 class="page-title">🔬 Grade 6 to Grade 9</h2>
+      <p class="page-sub">Rating scales (1–5) for 5 qualities + 2 open text responses.</p>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="downloadCSV('grade6_grade9')">⬇ Download CSV</button>
+        <button class="btn btn-outline"  onclick="loadGradeTable('grade6_grade9')">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Timestamp</th><th>First Name</th><th>Last Name</th><th>Adani UID</th>
+            <th>Engaging</th><th>Challenging</th><th>Caring</th><th>Creative</th><th>Safe</th>
+            <th>Q2 – Learn Best</th><th>Q3 – Fair Challenge</th>
+          </tr></thead>
+          <tbody id="tbody-grade6_grade9"><tr class="td-empty"><td colspan="11">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GRADE 10-DP -->
+    <div class="page" id="page-grade10">
+      <h2 class="page-title">🎓 Grade 10 to DP</h2>
+      <p class="page-sub">Reflective long-form answers on HQLT, teaching practices, real-world challenges.</p>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="downloadCSV('grade10_dp')">⬇ Download CSV</button>
+        <button class="btn btn-outline"  onclick="loadGradeTable('grade10_dp')">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Timestamp</th><th>First Name</th><th>Last Name</th><th>Adani UID</th>
+            <th>Q1 – HQLT Global</th><th>Q2 – Teaching Practices</th><th>Q3 – Real Challenges</th>
+          </tr></thead>
+          <tbody id="tbody-grade10_dp"><tr class="td-empty"><td colspan="7">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- APPEARANCE -->
+    <div class="page" id="page-appearance">
+      <h2 class="page-title">🎨 Appearance</h2>
+      <p class="page-sub">Set the logo and background image shown on student-facing pages. Saved directly to Google Sheets config.</p>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">🖼 School Logo</div>
+          <div class="field">
+            <label>Logo URL</label>
+            <input type="url" id="logoUrl" placeholder="https://yourschool.com/logo.png" oninput="prevLogo()"/>
+            <p class="field-hint">Or upload a file below — it will be base64 encoded.</p>
+          </div>
+          <div class="upload-zone" onclick="document.getElementById('logoFile').click()">
+            <span class="uz-icon">📤</span>
+            <p><strong>Click to upload logo</strong><br/>PNG · SVG · max 1 MB</p>
+            <input type="file" id="logoFile" accept="image/*" onchange="handleLogoFile(this)"/>
+          </div>
+          <div class="img-preview" id="logoPrev"><img id="logoPrevImg" src="" alt=""/></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary" onclick="saveLogo()">💾 Save Logo</button>
+            <button class="btn btn-danger"  onclick="clearLogo()">✕ Clear</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🌄 Background Image</div>
+          <div class="field">
+            <label>Background URL</label>
+            <input type="url" id="bgUrl" placeholder="https://yourschool.com/bg.jpg" oninput="prevBg()"/>
+            <p class="field-hint">Or upload a file below — it will be base64 encoded.</p>
+          </div>
+          <div class="upload-zone" onclick="document.getElementById('bgFile').click()">
+            <span class="uz-icon">📤</span>
+            <p><strong>Click to upload background</strong><br/>JPG · PNG · landscape recommended</p>
+            <input type="file" id="bgFile" accept="image/*" onchange="handleBgFile(this)"/>
+          </div>
+          <div class="img-preview" id="bgPrev"><img id="bgPrevImg" src="" alt=""/></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary" onclick="saveBg()">💾 Save Background</button>
+            <button class="btn btn-danger"  onclick="clearBg()">✕ Reset Default</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">👁 Live Preview</div>
+        <div class="preview-bar">
+          <div class="prev-logo" id="prevLogoBox">
+            <img id="prevLogoImg" src="" alt=""/>
+            <span id="prevLogoTxt" style="text-align:center;line-height:1.3">YOUR<br>LOGO</span>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:9.5px;letter-spacing:3px;color:var(--pink-light);margin-bottom:2px">ADIS</div>
+            <div style="font-size:13px;font-weight:700">Definition of High Quality Learning &amp; Teaching (HQLT)</div>
+          </div>
+          <div class="prev-bg" id="prevBgBox">BG Preview</div>
+        </div>
+        <p style="font-size:11.5px;color:var(--text-muted);margin-top:12px">
+          After saving, paste the snippet below into <code>BACKEND_CONFIG</code> in both student HTML files.
+        </p>
+        <div class="code-block" id="appearSnippet">// Save logo / background above to generate snippet.</div>
+        <button class="copy-btn" onclick="copyText('appearSnippet')">Copy</button>
+      </div>
+    </div>
+
+    <!-- CONNECT SHEETS -->
+    <div class="page" id="page-connect">
+      <h2 class="page-title">🔗 Connect Google Sheets</h2>
+      <p class="page-sub">One-time setup. Once connected, all student submissions flow into your Google Sheet automatically.</p>
+
+      <div class="card">
+        <div class="card-title">📋 Setup Steps</div>
+        <div class="steps">
+          <div class="step"><p>Create a new <strong>Google Sheet</strong>. Name it <em>ADIS HQLT Responses</em>. 4 tabs will be created automatically when the first submission arrives.</p></div>
+          <div class="step"><p>In the sheet, click <strong>Extensions → Apps Script</strong>. Delete all code in the editor.</p></div>
+          <div class="step"><p>Open the file <code>adis_apps_script.gs</code> (downloaded with this admin panel). Copy all its contents and paste into the Apps Script editor. Click <strong>Save (Ctrl + S)</strong>.</p></div>
+          <div class="step"><p>Click <strong>Deploy → New Deployment</strong>. Set <em>Type</em> → Web App. Set <em>Execute as</em> → <strong>Me</strong>. Set <em>Who has access</em> → <strong>Anyone</strong>. Click Deploy and grant access when prompted.</p></div>
+          <div class="step"><p>Copy the <strong>Web App URL</strong> that appears (looks like <code>https://script.google.com/macros/s/.../exec</code>).</p></div>
+          <div class="step"><p>Paste it in the field below and click <strong>Save &amp; Connect</strong>.</p></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔑 Your Apps Script Web App URL</div>
+        <div class="field">
+          <label>Web App URL</label>
+          <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"/>
+          <p class="field-hint">This single URL handles all submissions and data reads. Keep it private.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="saveAndConnect()">💾 Save &amp; Connect</button>
+          <button class="btn btn-outline" onclick="testConnection()">🧪 Test Connection</button>
+          <span id="connResult" style="font-size:12.5px;color:var(--text-muted)"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📄 Config Snippet for Student Pages</div>
+        <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px">After connecting, paste this <code>BACKEND_CONFIG</code> block into both <code>adis_login.html</code> and <code>adis_questionnaire.html</code>:</p>
+        <div class="code-block" id="configSnippet">// Save your Script URL above to generate this snippet.</div>
+        <button class="copy-btn" onclick="copyText('configSnippet')">Copy</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📊 Data Structure — What gets stored per grade</div>
+        <div style="display:flex;flex-direction:column;gap:14px;font-size:12.5px">
+          <div><strong style="color:var(--purple-light)">🌱 Nursery – Grade 1</strong><br/><span style="color:var(--text-muted)">Timestamp · First Name · Last Name · Adani UID · Image 1 Name · Image 2 Name · Image 3 Name</span></div>
+          <div><strong style="color:var(--blue-light)">📖 Grade 2 – Grade 5</strong><br/><span style="color:var(--text-muted)">Timestamp · First Name · Last Name · Adani UID · Q1a Looks Like · Q1b Sounds Like · Q1c Feels Like · Q2 One Change · Q3 Good Teacher</span></div>
+          <div><strong style="color:var(--pink-light)">🔬 Grade 6 – Grade 9</strong><br/><span style="color:var(--text-muted)">Timestamp · First Name · Last Name · Adani UID · Engaging · Challenging · Caring · Creative · Safe · Q2 Learn Best · Q3 Fair Challenge</span></div>
+          <div><strong style="color:var(--green-light)">🎓 Grade 10 – DP</strong><br/><span style="color:var(--text-muted)">Timestamp · First Name · Last Name · Adani UID · Q1 HQLT Global · Q2 Teaching Practices · Q3 Real Challenges</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /layout -->
+
+<script>
+/* ══════════════════════════════════════════════════════
+   ADMIN CREDENTIALS — change before going live
+   ══════════════════════════════════════════════════════ */
+const ADMINS = { 'admin': 'adis2025', 'principal': 'hqlt@adis' };
+
+/* ══════════════════════════════════════════════════════
+   STORAGE KEYS
+   ══════════════════════════════════════════════════════ */
+const LS = {
+  session:   'adis_admin_session',
+  scriptUrl: 'adis_script_url',
+  logo:      'adis_logo_url',
+  bg:        'adis_bg_url'
+};
+
+const GRADE_META = {
+  nursery_grade1: { label:'Nursery – Grade 1', dot:'#7C3AED' },
+  grade2_grade5:  { label:'Grade 2 – 5',       dot:'#2563EB' },
+  grade6_grade9:  { label:'Grade 6 – 9',       dot:'#EC4899' },
+  grade10_dp:     { label:'Grade 10 – DP',     dot:'#10B981' }
+};
+
+let SCRIPT_URL = '';
+
+/* ════ LOGIN / LOGOUT ════ */
+function doLogin() {
+  const u = document.getElementById('lu').value.trim();
+  const p = document.getElementById('lp').value;
+  if (ADMINS[u] && ADMINS[u] === p) {
+    localStorage.setItem(LS.session, u);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('hUser').textContent = '👤 ' + u;
+    initAdmin();
+  } else {
+    document.getElementById('loginErr').textContent = 'Invalid username or password.';
+  }
+}
+function doLogout() { localStorage.removeItem(LS.session); location.reload(); }
+
+/* ════ INIT ════ */
+window.addEventListener('DOMContentLoaded', () => {
+  const sess = localStorage.getItem(LS.session);
+  if (sess && ADMINS[sess] !== undefined) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('hUser').textContent = '👤 ' + sess;
+    initAdmin();
+  }
+});
+
+function initAdmin() {
+  SCRIPT_URL = localStorage.getItem(LS.scriptUrl) || '';
+  document.getElementById('scriptUrlInput').value = SCRIPT_URL;
+
+  // restore appearance fields
+  document.getElementById('logoUrl').value = localStorage.getItem(LS.logo) || '';
+  document.getElementById('bgUrl').value   = localStorage.getItem(LS.bg)   || '';
+  prevLogo(); prevBg(); updateAppearSnippet(); updateConfigSnippet();
+
+  if (SCRIPT_URL) {
+    document.getElementById('setupBanner').style.display = 'none';
+    loadStats();
+    loadAllTables();
+    pingScript();
+  } else {
+    document.getElementById('setupBanner').style.display = 'block';
+    setScriptStatus('err', '⚠ Not connected');
+  }
+}
+
+/* ════ NAVIGATION ════ */
+function nav(key) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const map = { dashboard:'page-dashboard', nursery:'page-nursery', grade25:'page-grade25', grade69:'page-grade69', grade10:'page-grade10', appearance:'page-appearance', connect:'page-connect' };
+  document.getElementById(map[key]).classList.add('active');
+  document.querySelector(`[data-p="${key}"]`).classList.add('active');
+}
+
+/* ════ SCRIPT STATUS ════ */
+function setScriptStatus(type, msg) {
+  const el = document.getElementById('scriptStatus');
+  el.className = 'h-script-status ' + type;
+  el.textContent = msg;
+}
+
+/* ════ API CALL HELPER ════ */
+async function api(params) {
+  if (!SCRIPT_URL) return null;
+  const url = SCRIPT_URL + '?' + new URLSearchParams(params).toString();
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.warn('API error:', err.message);
+    return null;
+  }
+}
+
+/* ════ PING ════ */
+async function pingScript() {
+  setScriptStatus('pending', '⏳ Connecting…');
+  const data = await api({ action: 'ping' });
+  if (data && data.status === 'ok') {
+    setScriptStatus('ok', '✅ Connected');
+  } else {
+    setScriptStatus('err', '❌ Connection failed');
+  }
+}
+
+/* ════ STATS ════ */
+async function loadStats() {
+  const data = await api({ action: 'stats' });
+  if (!data || data.status !== 'ok') { toast('Could not load stats from Sheets.', 'err'); return; }
+  const s = data.stats;
+  document.getElementById('statTotal').textContent = s.total || 0;
+  document.getElementById('statN').textContent     = s.nursery_grade1 || 0;
+  document.getElementById('statG25').textContent   = s.grade2_grade5  || 0;
+  document.getElementById('statG69').textContent   = s.grade6_grade9  || 0;
+  document.getElementById('statG10').textContent   = s.grade10_dp     || 0;
+  // update sidebar counts
+  Object.keys(GRADE_META).forEach(g => {
+    const el = document.getElementById('cnt-' + g);
+    if (el) el.textContent = s[g] || 0;
+  });
+}
+
+/* ════ TABLE LOADERS ════ */
+function loadAllTables() {
+  ['nursery_grade1','grade2_grade5','grade6_grade9','grade10_dp'].forEach(loadGradeTable);
+  loadRecentTable();
+}
+
+async function loadGradeTable(grade) {
+  const tbody = document.getElementById('tbody-' + grade);
+  if (!tbody) return;
+  tbody.innerHTML = `<tr class="loading-row"><td colspan="20"><span class="spinner"></span> Loading from Google Sheets…</td></tr>`;
+
+  const data = await api({ action: 'rows', grade });
+  if (!data || data.status !== 'ok') {
+    tbody.innerHTML = `<tr class="td-empty"><td colspan="20">⚠ Could not load data. Check your Script URL.</td></tr>`;
+    return;
+  }
+  if (!data.rows.length) {
+    tbody.innerHTML = `<tr class="td-empty"><td colspan="20">No submissions yet for this grade.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.rows.map(r => renderRow(grade, r)).join('');
+}
+
+function renderRow(grade, r) {
+  const ts = r['Timestamp'] ? fmtDate(r['Timestamp']) : '—';
+  const fn = esc(r['First Name'] || '—');
+  const ln = esc(r['Last Name']  || '—');
+  const uid = `<span class="td-uid">${esc(r['Adani UID'] || '—')}</span>`;
+
+  if (grade === 'nursery_grade1') {
+    return `<tr><td>${ts}</td><td>${fn}</td><td>${ln}</td><td>${uid}</td>
+      <td><span class="td-clip">${esc(r['Image 1 Name']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Image 2 Name']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Image 3 Name']||'—')}</span></td></tr>`;
+  }
+  if (grade === 'grade2_grade5') {
+    return `<tr><td>${ts}</td><td>${fn}</td><td>${ln}</td><td>${uid}</td>
+      <td><span class="td-clip">${esc(r['Q1a: Learning Looks Like']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Q1b: Learning Sounds Like']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Q1c: Learning Feels Like']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Q2: One Change for Awesome Class Time']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Q3: How a Good Teacher Helps']||'—')}</span></td></tr>`;
+  }
+  if (grade === 'grade6_grade9') {
+    return `<tr><td>${ts}</td><td>${fn}</td><td>${ln}</td><td>${uid}</td>
+      ${['Rating: Engaging (1-5)','Rating: Challenging (1-5)','Rating: Caring (1-5)','Rating: Creative (1-5)','Rating: Safe (1-5)'].map(k => `<td>${ratingPill(r[k])}</td>`).join('')}
+      <td><span class="td-clip">${esc(r['Q2: What Helps You Learn Best']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Q3: Fair & Supportive Challenge']||'—')}</span></td></tr>`;
+  }
+  if (grade === 'grade10_dp') {
+    return `<tr><td>${ts}</td><td>${fn}</td><td>${ln}</td><td>${uid}</td>
+      <td><span class="td-clip">${esc(r['Q1: HQLT in a Global World']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Q2: Teaching Practices for Equity & Creativity']||'—')}</span></td>
+      <td><span class="td-clip">${esc(r['Q3: Learning & Real-World Challenges']||'—')}</span></td></tr>`;
+  }
+  return '';
+}
+
+async function loadRecentTable() {
+  const grades = ['nursery_grade1','grade2_grade5','grade6_grade9','grade10_dp'];
+  const all = [];
+  await Promise.all(grades.map(async g => {
+    const data = await api({ action:'rows', grade:g });
+    if (data && data.rows) data.rows.forEach(r => all.push({ ...r, _grade: g }));
+  }));
+  all.sort((a,b) => new Date(b['Timestamp']) - new Date(a['Timestamp']));
+  const recent = all.slice(0,20);
+  const tbody  = document.getElementById('recentBody');
+  if (!recent.length) {
+    tbody.innerHTML = `<tr class="td-empty"><td colspan="5">No submissions yet.</td></tr>`; return;
+  }
+  tbody.innerHTML = recent.map(r => {
+    const m = GRADE_META[r._grade];
+    return `<tr>
+      <td>${fmtDate(r['Timestamp'])}</td>
+      <td><span class="grade-tag"><span class="g-dot" style="background:${m.dot}"></span>${m.label}</span></td>
+      <td>${esc(r['First Name']||'—')}</td>
+      <td>${esc(r['Last Name']||'—')}</td>
+      <td class="td-uid">${esc(r['Adani UID']||'—')}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ════ CSV DOWNLOAD ════ */
+async function downloadCSV(grade) {
+  if (!SCRIPT_URL) { toast('Connect Google Sheets first.','err'); return; }
+
+  if (grade === 'all') {
+    ['nursery_grade1','grade2_grade5','grade6_grade9','grade10_dp'].forEach(g => downloadCSV(g));
+    return;
+  }
+
+  toast('Preparing CSV…','info');
+  const url = SCRIPT_URL + '?action=csv&grade=' + grade;
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = `ADIS_${grade}_${today()}.csv`;
+  a.target   = '_blank';
+  a.click();
+  toast('CSV downloaded!');
+}
+
+/* ════ CONNECT SHEETS ════ */
+async function saveAndConnect() {
+  const url = document.getElementById('scriptUrlInput').value.trim();
+  if (!url) { toast('Please enter the Script URL.','err'); return; }
+  localStorage.setItem(LS.scriptUrl, url);
+  SCRIPT_URL = url;
+  document.getElementById('setupBanner').style.display = 'none';
+  updateConfigSnippet();
+  await testConnection();
+  loadStats();
+  loadAllTables();
+}
+
+async function testConnection() {
+  const url = document.getElementById('scriptUrlInput').value.trim() || SCRIPT_URL;
+  if (!url) { toast('No URL to test.','err'); return; }
+  const res = document.getElementById('connResult');
+  res.textContent = '⏳ Testing…'; res.style.color = 'var(--text-muted)';
+  SCRIPT_URL = url;
+  const data = await api({ action: 'ping' });
+  if (data && data.status === 'ok') {
+    res.textContent = '✅ Connected successfully!'; res.style.color = 'var(--green-light)';
+    setScriptStatus('ok', '✅ Connected');
+    toast('Google Sheets connected!');
+  } else {
+    res.textContent = '❌ Could not reach URL. Check deployment settings.'; res.style.color = 'var(--red-light)';
+    setScriptStatus('err', '❌ Connection failed');
+    toast('Connection failed. See Connect Sheets page.','err');
+  }
+}
+
+function updateConfigSnippet() {
+  const s    = localStorage.getItem(LS.scriptUrl) || '';
+  const logo = localStorage.getItem(LS.logo) || '';
+  const bg   = localStorage.getItem(LS.bg)   || '';
+  document.getElementById('configSnippet').textContent =
+`const BACKEND_CONFIG = {
+  logoUrl:           '${logo}',
+  backgroundUrl:     '${bg}',
+  GOOGLE_SCRIPT_URL: '${s}',
+  redirectUrl:       'adis_questionnaire.html'
+};`;
+}
+
+/* ════ APPEARANCE ════ */
+function handleLogoFile(inp) {
+  const file = inp.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => { document.getElementById('logoUrl').value = e.target.result; prevLogo(); };
+  r.readAsDataURL(file);
+}
+function handleBgFile(inp) {
+  const file = inp.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => { document.getElementById('bgUrl').value = e.target.result; prevBg(); };
+  r.readAsDataURL(file);
+}
+
+function prevLogo() {
+  const url  = document.getElementById('logoUrl').value.trim();
+  const prev = document.getElementById('logoPrev');
+  const pImg = document.getElementById('logoPrevImg');
+  const hImg = document.getElementById('prevLogoImg');
+  const hTxt = document.getElementById('prevLogoTxt');
+  if (url) {
+    pImg.src = url; prev.classList.add('show');
+    hImg.src = url; hImg.style.display='block'; hTxt.style.display='none';
+  } else {
+    prev.classList.remove('show');
+    hImg.style.display='none'; hTxt.style.display='block';
+  }
+  updateAppearSnippet();
+}
+
+function prevBg() {
+  const url  = document.getElementById('bgUrl').value.trim();
+  const prev = document.getElementById('bgPrev');
+  const pImg = document.getElementById('bgPrevImg');
+  const box  = document.getElementById('prevBgBox');
+  if (url) {
+    pImg.src = url; prev.classList.add('show');
+    box.style.backgroundImage = `url('${url}')`; box.textContent = '';
+  } else {
+    prev.classList.remove('show');
+    box.style.backgroundImage = ''; box.textContent = 'BG Preview';
+  }
+  updateAppearSnippet();
+}
+
+async function saveLogo() {
+  const url = document.getElementById('logoUrl').value.trim();
+  localStorage.setItem(LS.logo, url);
+  if (SCRIPT_URL) await api({ action:'saveConfig', logoUrl:url, bgUrl: localStorage.getItem(LS.bg)||'' });
+  updateConfigSnippet(); updateAppearSnippet();
+  toast('Logo saved!');
+}
+async function clearLogo() {
+  document.getElementById('logoUrl').value = '';
+  localStorage.removeItem(LS.logo);
+  if (SCRIPT_URL) await api({ action:'saveConfig', logoUrl:'', bgUrl: localStorage.getItem(LS.bg)||'' });
+  prevLogo(); updateConfigSnippet(); updateAppearSnippet();
+  toast('Logo cleared.');
+}
+async function saveBg() {
+  const url = document.getElementById('bgUrl').value.trim();
+  localStorage.setItem(LS.bg, url);
+  if (SCRIPT_URL) await api({ action:'saveConfig', logoUrl: localStorage.getItem(LS.logo)||'', bgUrl:url });
+  updateConfigSnippet(); updateAppearSnippet();
+  toast('Background saved!');
+}
+async function clearBg() {
+  document.getElementById('bgUrl').value = '';
+  localStorage.removeItem(LS.bg);
+  if (SCRIPT_URL) await api({ action:'saveConfig', logoUrl: localStorage.getItem(LS.logo)||'', bgUrl:'' });
+  prevBg(); updateConfigSnippet(); updateAppearSnippet();
+  toast('Background reset.');
+}
+
+function updateAppearSnippet() {
+  const logo = document.getElementById('logoUrl').value.trim();
+  const bg   = document.getElementById('bgUrl').value.trim();
+  const s    = localStorage.getItem(LS.scriptUrl) || '';
+  document.getElementById('appearSnippet').textContent =
+`const BACKEND_CONFIG = {
+  logoUrl:           '${logo}',
+  backgroundUrl:     '${bg}',
+  GOOGLE_SCRIPT_URL: '${s}',
+  redirectUrl:       'adis_questionnaire.html'
+};`;
+}
+
+/* ════ UTILS ════ */
+function toast(msg, type='ok') {
+  const w = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = (type==='ok'?'✓ ':type==='err'?'✗ ':'ℹ ') + msg;
+  w.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function copyText(id) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent);
+  toast('Copied to clipboard!');
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmtDate(ts) {
+  try { return new Date(ts).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+  catch { return ts; }
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+
+function ratingPill(v) {
+  const n = parseInt(v);
+  if (isNaN(n)) return '<span style="color:var(--text-muted)">—</span>';
+  const cls = n<=2?'r1 r2':n===3?'r3':'r4 r5';
+  return `<span class="rating-pill ${cls}">${n}</span>`;
+}
+</script>
+</body>
+</html>
